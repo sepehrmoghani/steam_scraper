@@ -1,7 +1,8 @@
+#First import Selenium for webdriver and BS4 to read html
 from selenium import webdriver
 from bs4 import BeautifulSoup
-import csv
-import time
+
+#Here we specify the type of webdriver we want and what functions it will have
 
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
@@ -9,34 +10,54 @@ options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 options.add_argument('user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:39.0) Gecko/20100101 Firefox/39.0')
 
+#add steam's URL to URL variable
+
 URL = "https://store.steampowered.com/search/?"
+
+#here we add that url to the browser
 
 with webdriver.Chrome(options = options) as browser:
      browser.get(URL)
      html = browser.page_source     
 
-#for i in range(1,100):
-#    browser.execute_script("window.scrollTo(0,document.body.scrollHeight);")
-#    time.sleep(1)
+#Since Steam will load more pages as we scroll down, we need to keep scrolling down until we have enough data to work with.
+#The time import will make sure we give the browser enough time to load the page before we move on. it will take the browser much shorter time but 1 second per page just to be on the safe side
+#This part of the code will take 60 seconds.
+
+import time
+
+for i in range(1,60):
+    browser.execute_script("window.scrollTo(0,document.body.scrollHeight);")
+    time.sleep(1)
+
+#Here we use beautifulsoup to read all the html functions and make sure soup will begin at the correct line.
 
 soup = BeautifulSoup(html, "html.parser")
 results = soup.find(id="search_result_container")
 games = results.find_all("div", class_="responsive_search_name_combined")
+
+#I used lists to save all the data I want
 
 title_element = []
 date_element = []
 price_element = []
 review_element = []
 
+#for the number of games found, save the titles, dates, prices and reviews in the lists
+
 for game in games:
     title_element.append(game.find("span", class_="title").text.strip())
     date_element.append(game.find("div", class_="search_released").text.strip())
     price_element.append(game.find("div", class_="search_price").text.strip())
-    #review_element.append(game.find("span", class_="search_review_summary").text.strip())
+    review_element.append(game.find("span", class_="search_review_summary").text.strip())
+
+#here it will save all the data in a .csv file and the result is a table
+
+import csv
 
 with open ('steam_games.csv', 'w', newline='') as csvfile:
     fieldnames = ['title', 'date', 'price', 'review']
     thewriter = csv.DictWriter(csvfile, fieldnames = fieldnames)
     thewriter.writeheader()
     for i in range(len(title_element)):
-        thewriter.writerow({'title': title_element[i], 'date': date_element[i], 'price': price_element[i]})
+        thewriter.writerow({'title': title_element[i], 'date': date_element[i], 'price': price_element[i], 'review': review_element[i]})
